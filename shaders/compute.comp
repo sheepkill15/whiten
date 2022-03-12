@@ -1,0 +1,48 @@
+#version 430
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(rgba32f, binding = 0) uniform readonly image2D img_input;
+layout(rgba32f, binding = 1) uniform writeonly image2D img_output;
+
+uniform sampler2D tex;
+
+struct Rect {
+    int x0;
+    int y0;
+    int x1;
+    int y1;
+};
+
+layout(std140, binding = 4) uniform WindowSize {
+    int width;
+    int height;
+};
+
+layout(std430, binding = 5) buffer Rects {
+    int region;
+    int regionCount;
+};
+
+layout(std430, binding = 6) buffer Tresholds {
+    float tresholds[];
+};
+
+int whichRegion(ivec2 coords) {
+    int regionX = coords.x / (width / regionCount);
+    int regionY = coords.y / (height / regionCount);
+    return regionY * regionCount + regionX;
+}
+
+void main()
+{
+    ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+    if(coords.x >= width || coords.y >= height) {
+        return;
+    }
+    vec4 col = imageLoad(img_input, coords);
+    const float this_pixel = col.r + col.g + col.b;
+    if(this_pixel > tresholds[whichRegion(coords)]) {
+        imageStore(img_output, coords, vec4(1));
+        return;
+    }
+    imageStore(img_output, coords, col);
+} 

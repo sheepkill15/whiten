@@ -1,0 +1,29 @@
+#version 430
+layout(local_size_x = 8) in;
+layout(rgba32f, binding = 0) uniform writeonly image2D img_output;
+
+uniform int pixelSize;
+
+struct Pixel {
+    int x;
+    int y;
+    float data;
+};
+
+layout(std430, binding = 2) buffer Pixels {
+    Pixel pixels[];
+};
+
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+    if(index >= pixels.length()) return;
+    if(pixels[index].data == -1) return;
+    ivec2 coords = ivec2(pixels[index].x, pixels[index].y);
+    vec4 pixel = vec4(1);
+    for(int i = -pixelSize / 2; i <= pixelSize / 2; i++) {
+        for(int j = -pixelSize / 2; j <= pixelSize / 2; j++) {
+            imageStore(img_output, coords + ivec2(i, j), pixel);
+        }
+    }
+}
